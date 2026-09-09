@@ -40,7 +40,7 @@ Both come straight from the eval artifacts. A task's `score` is exactly `asserti
 
 ### The agent
 
-The agent runs a tool-calling loop until it finishes or reaches a ceiling of **50 model calls**. Its tools are:
+The agent runs a tool-calling loop until it finishes or reaches a ceiling of **50 turns**. Its tools are:
 
 | Tool | Purpose |
 | --- | --- |
@@ -77,7 +77,7 @@ Because routing was unpinned, the provider OpenRouter actually selected may have
 
 ## The failure mode: one requirement short
 
-Before looking at what the optimizer built, it is worth being precise about what was actually wrong. The default agent was **not** thrashing, and it was **not** running out of turns — its median task took 19 model calls, and only 3 of 100 tasks came near the ceiling.
+Before looking at what the optimizer built, it is worth being precise about what was actually wrong. The default agent was **not** thrashing, and it was **not** running out of turns — its median task took 19 turns, and only 3 of 100 reached the 50-turn ceiling.
 
 It was finishing early and confidently, one deliverable short:
 
@@ -162,9 +162,14 @@ Rewritten from five generic lines into an explicit contract. It requires the age
 | `api_fetch` calls | 1,697 | 2,012 |
 | `update_action_ledger` calls | — | **2,368** |
 | Turns before first action (median) | 4 | **2** |
+| Turns per task (median) | 19 | **43.5** |
 | Model calls per task (median) | 19 | **44.5** |
 | Output tokens per task (median) | 8,186 | **27,685** |
 | Output tokens per model call | 457 | 660 |
+
+A turn is one iteration of the loop, which is what the ceiling caps. A model call is what gets
+billed; the two coincide in the default harness, while the optimized harness can add one call per
+task by making a review call outside the loop.
 
 The agent searches roughly half as much and starts acting twice as fast. What it does instead is account for its work: ledger maintenance and verification more than absorb what search gives back.
 

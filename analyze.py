@@ -53,9 +53,10 @@ LEARNING_TASKS = frozenset({
     "finance.xero_credit_allocation",
 })
 
-# The agent's model-call ceiling. 45 rather than 50 catches runs that stopped a
-# call or two short of the wall for an unrelated reason.
-NEAR_CEILING = 45
+# The agent's turn ceiling. The runner caps the rollout trajectory, which the
+# artifacts record as "steps" -- not as "num_model_calls", which the optimized
+# harness can push one higher by making a review call outside the trajectory.
+TURN_CEILING = 50
 
 
 def load(name):
@@ -135,7 +136,8 @@ def conduct(tasks):
         "model_calls_median": st.median(t["num_model_calls"] for t in tasks),
         "output_tokens_median": st.median(t["output_tokens"] for t in tasks),
         "output_per_model_call": sum(t["output_tokens"] for t in tasks) / model_calls,
-        "hit_ceiling": sum(1 for t in tasks if t["num_model_calls"] >= NEAR_CEILING),
+        "turns_median": st.median(t["steps"] for t in tasks),
+        "hit_ceiling": sum(1 for t in tasks if t["steps"] >= TURN_CEILING),
     }
 
 
@@ -232,7 +234,9 @@ def main():
          co["tool_calls"]["update_action_ledger"]),
         ("turns before first action", cd["turns_before_first_action_median"],
          co["turns_before_first_action_median"]),
+        ("turns (median)", cd["turns_median"], co["turns_median"]),
         ("model calls (median)", cd["model_calls_median"], co["model_calls_median"]),
+        ("tasks at the 50-turn ceiling", cd["hit_ceiling"], co["hit_ceiling"]),
         ("output tokens / task (median)", cd["output_tokens_median"], co["output_tokens_median"]),
         ("output tokens / model call", cd["output_per_model_call"], co["output_per_model_call"]),
     ]
